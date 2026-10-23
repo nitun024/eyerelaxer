@@ -22,6 +22,9 @@ class AppState: ObservableObject {
     @Published var notificationMessage: String {
         didSet { UserDefaults.standard.set(notificationMessage, forKey: "notificationMessage") }
     }
+    @Published var showBreakOverlay: Bool {
+        didSet { UserDefaults.standard.set(showBreakOverlay, forKey: "showBreakOverlay") }
+    }
     @Published var launchAtLogin: Bool {
         didSet {
             UserDefaults.standard.set(launchAtLogin, forKey: "launchAtLogin")
@@ -44,6 +47,8 @@ class AppState: ObservableObject {
         
         self.notificationMessage = UserDefaults.standard.string(forKey: "notificationMessage") ?? "Time to relax your eyes! Look at something 20 feet away."
         
+        self.showBreakOverlay = UserDefaults.standard.object(forKey: "showBreakOverlay") as? Bool ?? true
+        
         self.launchAtLogin = UserDefaults.standard.bool(forKey: "launchAtLogin")
         
         // Start in a sane state. Don’t trigger break sounds on launch.
@@ -57,6 +62,7 @@ class AppState: ObservableObject {
     }
     
     func startWorkTimer() {
+        BreakOverlayManager.shared.hide()
         timerState = .working
         timeRemaining = workInterval
         isPaused = false
@@ -72,6 +78,13 @@ class AppState: ObservableObject {
         // Trigger effects
         soundManager.playBreakStartSound()
         notificationManager.sendNotification(title: "Eye Relaxer", body: notificationMessage)
+        if showBreakOverlay {
+            BreakOverlayManager.shared.show(appState: self)
+        }
+    }
+    
+    func skipBreak() {
+        startWorkTimer()
     }
     
     func togglePause() {

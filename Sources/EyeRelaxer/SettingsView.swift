@@ -7,10 +7,12 @@ struct SettingsView: View {
     
     // Local State for deferred saving
     @State private var tempWorkInterval: Double = 20
+    @State private var tempWorkIntervalInSeconds: Bool = false
     @State private var tempBreakDuration: Double = 20
     @State private var tempBreakStartSound: String = "Ping"
     @State private var tempBreakEndSound: String = "Basso"
     @State private var tempNotificationMessage: String = ""
+    @State private var tempShowBreakOverlay: Bool = true
     @State private var tempLaunchAtLogin: Bool = false
     
     @State private var permissionStatus: String = "Checking..."
@@ -41,8 +43,12 @@ struct SettingsView: View {
                     .background(Color.white.opacity(0.1))
                     .cornerRadius(5)
                     .foregroundColor(.white)
-                    Text("min")
-                        .foregroundColor(.gray)
+                    Picker("", selection: $tempWorkIntervalInSeconds) {
+                        Text("min").tag(false)
+                        Text("sec").tag(true)
+                    }
+                    .labelsHidden()
+                    .frame(width: 70)
                 }
                 
                 HStack {
@@ -213,6 +219,9 @@ struct SettingsView: View {
             
             // System
             VStack(alignment: .leading, spacing: 10) {
+                Toggle("Full-Screen Break Overlay", isOn: $tempShowBreakOverlay)
+                    .toggleStyle(.switch)
+                    .foregroundColor(.white.opacity(0.9))
                 Toggle("Launch at Login", isOn: $tempLaunchAtLogin)
                     .toggleStyle(.switch)
                     .foregroundColor(.white.opacity(0.9))
@@ -257,29 +266,35 @@ struct SettingsView: View {
     }
     
     private func loadSettings() {
-        tempWorkInterval = appState.workInterval / 60
+        // Show whole minutes as minutes; anything else in seconds.
+        tempWorkIntervalInSeconds = appState.workInterval.truncatingRemainder(dividingBy: 60) != 0
+        tempWorkInterval = tempWorkIntervalInSeconds ? appState.workInterval : appState.workInterval / 60
         tempBreakDuration = appState.breakDuration
         tempBreakStartSound = soundManager.breakStartSound
         tempBreakEndSound = soundManager.breakEndSound
         tempNotificationMessage = appState.notificationMessage
+        tempShowBreakOverlay = appState.showBreakOverlay
         tempLaunchAtLogin = appState.launchAtLogin
     }
     
     private func resetToDefaults() {
         tempWorkInterval = 20
+        tempWorkIntervalInSeconds = false
         tempBreakDuration = 20
         tempBreakStartSound = "Ping"
         tempBreakEndSound = "Basso"
         tempNotificationMessage = "Time to relax your eyes! Look at something 20 feet away."
+        tempShowBreakOverlay = true
         tempLaunchAtLogin = false
     }
     
     private func saveSettings() {
-        appState.workInterval = tempWorkInterval * 60
+        appState.workInterval = max(1, tempWorkIntervalInSeconds ? tempWorkInterval : tempWorkInterval * 60)
         appState.breakDuration = tempBreakDuration
         soundManager.breakStartSound = tempBreakStartSound
         soundManager.breakEndSound = tempBreakEndSound
         appState.notificationMessage = tempNotificationMessage
+        appState.showBreakOverlay = tempShowBreakOverlay
         appState.launchAtLogin = tempLaunchAtLogin
         
         // Reset timer with new settings
